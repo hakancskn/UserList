@@ -5,14 +5,11 @@ import com.example.userlist.model.FetchError
 import com.example.userlist.model.FetchResponse
 import com.example.userlist.model.Person
 import com.example.userlist.model.ProcessResult
-import android.os.Handler
-import android.os.Looper
+import kotlinx.coroutines.delay
 import kotlin.collections.ArrayList
 import kotlin.math.min
 import kotlin.random.Random
 
-
-typealias FetchCompletionHandler = (FetchResponse?, FetchError?) -> Unit
 
 class DataSource {
     companion object {
@@ -20,10 +17,14 @@ class DataSource {
     }
 
     private object Constants {
-        val peopleCountRange: ClosedRange<Int> = 100..200 // lower bound must be > 0, upper bound must be > lower bound
-        val fetchCountRange: ClosedRange<Int> = 5..20 // lower bound must be > 0, upper bound must be > lower bound
-        val lowWaitTimeRange: ClosedRange<Double> = 0.0..0.3 // lower bound must be >= 0.0, upper bound must be > lower bound
-        val highWaitTimeRange: ClosedRange<Double> = 1.0..2.0 // lower bound must be >= 0.0, upper bound must be > lower bound
+        val peopleCountRange: ClosedRange<Int> =
+            100..200 // lower bound must be > 0, upper bound must be > lower bound
+        val fetchCountRange: ClosedRange<Int> =
+            5..20 // lower bound must be > 0, upper bound must be > lower bound
+        val lowWaitTimeRange: ClosedRange<Double> =
+            0.0..0.3 // lower bound must be >= 0.0, upper bound must be > lower bound
+        val highWaitTimeRange: ClosedRange<Double> =
+            1.0..2.0 // lower bound must be >= 0.0, upper bound must be > lower bound
         const val errorProbability = 0.05 // must be > 0.0
         const val backendBugTriggerProbability = 0.05 // must be > 0.0
         const val emptyFirstResultsProbability = 0.1 // must be > 0.0
@@ -33,12 +34,10 @@ class DataSource {
         initializeData()
     }
 
-    public fun fetch(next: String?, completionHandler: FetchCompletionHandler) {
+    suspend public fun fetch(next: String?):ProcessResult {
         val processResult = processRequest(next)
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            completionHandler(processResult.fetchResponse, processResult.fetchError)
-        },(processResult.waitTime * 1000).toLong())
+        delay((processResult.waitTime * 1000).toLong())
+        return processResult
     }
 
     private fun initializeData() {
@@ -76,8 +75,14 @@ class DataSource {
             } else {
                 val endIndex: Int = min(peopleCount, fetchCount + (nextIntValue ?: 0))
                 val beginIndex: Int = if (next == null) 0 else min(nextIntValue!!, endIndex)
-                var responseNext: String? = if (endIndex >= peopleCount) null else endIndex.toString()
-                var fetchedPeople: ArrayList<Person> = ArrayList(people.subList(beginIndex, endIndex)) // begin ile end ayni olunca bos donuyor mu?
+                var responseNext: String? =
+                    if (endIndex >= peopleCount) null else endIndex.toString()
+                var fetchedPeople: ArrayList<Person> = ArrayList(
+                    people.subList(
+                        beginIndex,
+                        endIndex
+                    )
+                ) // begin ile end ayni olunca bos donuyor mu?
                 if (beginIndex > 0 && RandomUtils.roll(probability = Constants.backendBugTriggerProbability)) {
                     fetchedPeople.add(0, people[beginIndex - 1])
                 } else if (beginIndex == 0 && RandomUtils.roll(probability = Constants.emptyFirstResultsProbability)) {
@@ -92,13 +97,14 @@ class DataSource {
 }
 
 
-
 // Utils
 private object RandomUtils {
 
-    fun generateRandomInt(range: ClosedRange<Int>): Int = Random.nextInt(range.start, range.endInclusive)
+    fun generateRandomInt(range: ClosedRange<Int>): Int =
+        Random.nextInt(range.start, range.endInclusive)
 
-    fun generateRandomDouble(range: ClosedRange<Double>): Double = Random.nextDouble(range.start, range.endInclusive)
+    fun generateRandomDouble(range: ClosedRange<Double>): Double =
+        Random.nextDouble(range.start, range.endInclusive)
 
     fun roll(probability: Double): Boolean {
         val random = Random.nextDouble(0.0, 1.0)
@@ -107,8 +113,38 @@ private object RandomUtils {
 }
 
 private object PeopleGen {
-    private val firstNames = listOf("Fatma", "Mehmet", "Ayşe", "Mustafa", "Emine", "Ahmet", "Hatice", "Ali", "Zeynep", "Hüseyin", "Elif", "Hasan", "İbrahim", "Can", "Murat", "Özlem")
-    private val lastNames = listOf("Yılmaz", "Şahin", "Demir", "Çelik", "Şahin", "Öztürk", "Kılıç", "Arslan", "Taş", "Aksoy", "Barış", "Dalkıran")
+    private val firstNames = listOf(
+        "Fatma",
+        "Mehmet",
+        "Ayşe",
+        "Mustafa",
+        "Emine",
+        "Ahmet",
+        "Hatice",
+        "Ali",
+        "Zeynep",
+        "Hüseyin",
+        "Elif",
+        "Hasan",
+        "İbrahim",
+        "Can",
+        "Murat",
+        "Özlem"
+    )
+    private val lastNames = listOf(
+        "Yılmaz",
+        "Şahin",
+        "Demir",
+        "Çelik",
+        "Şahin",
+        "Öztürk",
+        "Kılıç",
+        "Arslan",
+        "Taş",
+        "Aksoy",
+        "Barış",
+        "Dalkıran"
+    )
 
     fun generateRandomFullName(): String {
         val firstNamesCount = firstNames.size
